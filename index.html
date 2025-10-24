@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>救援队伍信息</title>
+  <!-- 引入Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入Font Awesome图标 -->
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <!-- 配置Tailwind自定义样式 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#1E40AF', // 水利蓝主色调
+            secondary: '#10B981',
+            danger: '#EF4444',
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .card-shadow {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      }
+      .card-hover {
+        transition: all 0.3s ease;
+      }
+      .card-hover:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(30, 64, 175, 0.12);
+      }
+      .edit-input {
+        @apply w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition;
+      }
+      .fade-in {
+        animation: fadeIn 0.3s ease forwards;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .slide-up {
+        animation: slideUp 0.2s ease forwards;
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <!-- 页面标题和添加按钮 -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+      <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-gray-800">
+        <i class="fa fa-shield text-primary mr-2"></i>救援队伍信息
+      </h1>
+      <button id="addCardBtn" class="bg-primary hover:bg-primary/90 text-white font-medium py-2.5 px-6 rounded-lg flex items-center transition-all">
+        <i class="fa fa-plus-circle mr-2"></i>添加队伍信息
+      </button>
+    </div>
+    
+    <!-- 卡片容器 -->
+    <div id="cardContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- 卡片将通过JS动态生成 -->
+    </div>
+  </div>
+
+  <script>
+    // 初始抢险队伍数据
+    const initialTeams = [
+      {
+        id: 1,
+        name: "城区河道防洪抢险队",
+        department: "市水利局河道管理处",
+        leader: "张伟",
+        phone: "18372482323",
+        members: "张伟，李建军，王强，刘昊然，陈宇，杨国栋，赵鹏，周明轩"
+      },
+      {
+        id: 2,
+        name: "水库应急抢险分队",
+        department: "市水利局水库管理中心",
+        leader: "郭海涛",
+        phone: "18343200432",
+        members: "郭海涛，彭军，曹阳，谢宇辰，戴鹏，傅刚，潘磊，邹宇"
+      },
+      {
+        id: 3,
+        name: "堤坝加固抢险专业队",
+        department: "省水利建设集团、市水利局",
+        leader: "张磊",
+        phone: "123432343242",
+        members: "张磊，陈明，赵宇恒，李哲，吴嘉豪，徐正阳，马子轩，朱浩然"
+      },
+      {
+        id: 4,
+        name: "沟渠排涝抢险队",
+        department: "农田水利科",
+        leader: "刘建国",
+        phone: "18365427890",
+        members: "刘建国，孙浩，周洋，吴磊，郑佳明，冯宇，韩鹏，董正阳"
+      },
+      {
+        id: 5,
+        name: "工程应急抢修队",
+        department: "水利工程集团",
+        leader: "赵志强",
+        phone: "18389012345",
+        members: "赵志强，钱明，孙阳，李鹏，朱宇辰，何刚，马磊，胡宇"
+      }
+    ];
+
+    // 当前队伍数据存储
+    let teamData = [...initialTeams];
+    let currentEditId = null; // 记录当前正在编辑的卡片ID
+
+    // 渲染所有卡片
+    function renderCards() {
+      const container = document.getElementById('cardContainer');
+      container.innerHTML = '';
+      
+      teamData.forEach(team => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'bg-white rounded-xl p-5 card-shadow card-hover fade-in';
+        cardElement.dataset.id = team.id;
+        
+        // 判断是否为编辑状态
+        if (currentEditId === team.id) {
+          // 编辑模式
+          cardElement.innerHTML = `
+            <div class="border-b border-gray-100 pb-3 mb-4">
+              <h3 class="text-lg font-bold text-primary">编辑队伍信息</h3>
+            </div>
+            
+            <div class="space-y-3 mb-5">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">队伍名称 <span class="text-danger">*</span></label>
+                <input type="text" class="edit-input" id="name-${team.id}" value="${team.name}" placeholder="请输入队伍名称">
+              </div>
+              
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">主管单位 <span class="text-danger">*</span></label>
+                <input type="text" class="edit-input" id="dept-${team.id}" value="${team.department}" placeholder="请输入主管单位">
+              </div>
+              
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">负责人 <span class="text-danger">*</span></label>
+                <input type="text" class="edit-input" id="leader-${team.id}" value="${team.leader}" placeholder="请输入负责人姓名">
+              </div>
+              
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">联系电话 <span class="text-danger">*</span></label>
+                <input type="text" class="edit-input" id="phone-${team.id}" value="${team.phone}" placeholder="请输入联系电话">
+              </div>
+              
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">人员配置</label>
+                <textarea class="edit-input h-20" id="members-${team.id}" placeholder="请输入人员配置，用逗号分隔">${team.members}</textarea>
+              </div>
+            </div>
+            
+            <div class="flex gap-3">
+              <button class="save-btn flex-1 bg-secondary text-white py-2.5 rounded-md hover:bg-secondary/90 transition flex items-center justify-center" data-id="${team.id}">
+                <i class="fa fa-check mr-1"></i>保存
+              </button>
+              <button class="cancel-btn flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-md hover:bg-gray-300 transition" data-id="${team.id}">
+                <i class="fa fa-times mr-1"></i>取消
+              </button>
+            </div>
+          `;
+        } else {
+          // 展示模式
+          cardElement.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="text-lg font-bold text-primary">${team.name}</h3>
+              <span class="bg-blue-50 text-primary text-xs px-2 py-1 rounded">
+                <i class="fa fa-users mr-1"></i>团队
+              </span>
+            </div>
+            
+            <div class="space-y-2 text-sm mb-5">
+              <p class="flex">
+                <span class="text-gray-500 w-24">主管单位：</span>
+                <span class="text-gray-800">${team.department}</span>
+              </p>
+              <p class="flex">
+                <span class="text-gray-500 w-24">负责人：</span>
+                <span class="text-gray-800">${team.leader}</span>
+              </p>
+              <p class="flex">
+                <span class="text-gray-500 w-24">联系电话：</span>
+                <span class="text-gray-800">${team.phone}</span>
+              </p>
+              <p class="flex flex-col">
+                <span class="text-gray-500 mb-1">人员配置：</span>
+                <span class="text-gray-800 text-xs leading-relaxed">${team.members}</span>
+              </p>
+            </div>
+            
+            <div class="flex gap-2 pt-2 border-t border-gray-100">
+              <button class="edit-btn flex-1 bg-gray-100 text-gray-700 py-2 rounded-md hover:bg-gray-200 transition text-sm" data-id="${team.id}">
+                <i class="fa fa-pencil mr-1"></i>编辑
+              </button>
+              <button class="delete-btn flex-1 bg-danger/10 text-danger py-2 rounded-md hover:bg-danger/20 transition text-sm" data-id="${team.id}">
+                <i class="fa fa-trash mr-1"></i>删除
+              </button>
+            </div>
+          `;
+        }
+        
+        container.appendChild(cardElement);
+      });
+
+      // 绑定编辑按钮事件
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = parseInt(e.currentTarget.dataset.id);
+          currentEditId = id;
+          renderCards();
+          // 滚动到编辑卡片
+          document.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      });
+
+      // 绑定保存按钮事件
+      document.querySelectorAll('.save-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = parseInt(e.currentTarget.dataset.id);
+          const teamIndex = teamData.findIndex(t => t.id === id);
+          
+          if (teamIndex !== -1) {
+            // 获取编辑后的值
+            const updatedTeam = {
+              ...teamData[teamIndex],
+              name: document.getElementById(`name-${id}`).value.trim(),
+              department: document.getElementById(`dept-${id}`).value.trim(),
+              leader: document.getElementById(`leader-${id}`).value.trim(),
+              phone: document.getElementById(`phone-${id}`).value.trim(),
+              members: document.getElementById(`members-${id}`).value.trim()
+            };
+            
+            // 简单验证必填项
+            if (!updatedTeam.name || !updatedTeam.department || !updatedTeam.leader || !updatedTeam.phone) {
+              alert('请填写所有带*的必填项');
+              return;
+            }
+            
+            teamData[teamIndex] = updatedTeam;
+          }
+          
+          currentEditId = null;
+          renderCards();
+        });
+      });
+
+      // 绑定取消按钮事件
+      document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentEditId = null;
+          renderCards();
+        });
+      });
+
+      // 绑定删除按钮事件
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = parseInt(e.currentTarget.dataset.id);
+          if (confirm('确定要删除这个队伍信息吗？')) {
+            teamData = teamData.filter(t => t.id !== id);
+            renderCards();
+          }
+        });
+      });
+    }
+
+    // 添加新卡片
+    document.getElementById('addCardBtn').addEventListener('click', () => {
+      const newId = teamData.length > 0 ? Math.max(...teamData.map(t => t.id)) + 1 : 1;
+      const newTeam = {
+        id: newId,
+        name: "新抢险队伍",
+        department: "",
+        leader: "",
+        phone: "",
+        members: ""
+      };
+      
+      teamData.push(newTeam);
+      currentEditId = newId; // 自动进入编辑模式
+      renderCards();
+    });
+
+    // 初始化渲染
+    renderCards();
+  </script>
+</body>
+</html>
